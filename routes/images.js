@@ -1,10 +1,9 @@
 var express = require('express');
 var router = express.Router();
 var multer = require('multer')
-var sharp = require('sharp')
-var fs = require('fs')
 require('dotenv').config()
 const path = require("path");
+const { resizeImage } = require('../controllers/images.controllers');
 const storage = multer.memoryStorage();
 const uploads = multer({storage})
 
@@ -13,19 +12,9 @@ router.get('/', function(req, res, next) {
   res.send('respond with a resource');
 });
 
-router.post('/', uploads.single('image'), async function(req, res, next) {
-  fs.access('./images/uploads', (err) => {
-    if (err){
-      fs.mkdirSync('./images/uploads')
-    }
-  })
-  const image = sharp(req.file.buffer)
-  const metadata = await image.metadata()
-  await sharp(req.file.buffer)
-    .resize({width: metadata.width / 4, height: metadata.height / 4})
-    .toFile('./images/uploads/' + req.file.originalname)
-  
-  res.json({image_url: `${process.env.HOST}/${req.file.originalname}`});
+router.post('/', uploads.single('image'), async (req, res) => {
+  let image_url = await resizeImage({file: req.file})
+  res.status(200).json({image_url: image_url?.image_url})
 });
 
 router.delete('/', function(req, res, next) {
